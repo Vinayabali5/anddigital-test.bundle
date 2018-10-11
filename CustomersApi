@@ -1,0 +1,114 @@
+package uk.ac.anddigital.api;
+
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE
+import io.swagger.annotations.Api
+import io.swagger.annotations.ApiOperation
+import io.swagger.annotations.ApiParam
+import io.swagger.annotations.ApiResponse
+import io.swagger.annotations.ApiResponses
+
+import javax.validation.Valid
+
+import org.apache.log4j.Logger
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
+import org.springframework.security.access.annotation.Secured
+import org.springframework.stereotype.Controller
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestMethod
+import org.springframework.web.bind.annotation.RequestParam
+
+import uk.ac.anddigital.domain.Customer
+import uk.ac.anddigital.dto.CustomerDto
+import uk.ac.reigate.exceptions.InvalidDataException
+import uk.ac.reigate.exceptions.NotFoundException
+import uk.ac.reigate.model.SearchResult
+import uk.ac.anddigital.services.CustomerService
+
+@Controller
+@RequestMapping(value = "/api/customers", produces = [ APPLICATION_JSON_VALUE ])
+@Api(value = "/api/customers", description = "the customers API")
+
+public class CustomersApi {
+	
+	private static final Logger LOGGER = Logger.getLogger(CustomersApi.class);
+
+ 	@Autowired
+    private final CustomerService customerService;
+
+ 	/**
+     * Default NoArgs constructor
+     */
+    CustomersApi() {}
+
+	/**
+     * The CustomersGet method is used to retrieve a full list of all the CustomerDto objects
+     * It retrieves all the customers and there phone numbers
+     * @return A ResponseEntity with the corresponding list of CustomersDto objects
+     * @throws NotFoundException if nothing is found then the the NotFoundException is thrown.
+     */
+      @ApiOperation(value = "Collection of Customer entities", notes = "A GET request to the Customers endpoint returns an array of all the customers in the system with all the phone numbers.", response = CustomerDto.class, responseContainer = "List")
+    @ApiResponses(value = [
+        @ApiResponse(code = 200, message = "An array of customers")
+    ])
+    @RequestMapping(value = "/phoneNumbers", produces = ["application/json"], method = RequestMethod.GET)
+    public ResponseEntity<List<CustomerDto>> customersGet() throws NotFoundException {
+        LOGGER.info("** CustomersApi - customersGet");
+        List<Customer> customers = customerService.findAll();
+        return new ResponseEntity<List<CustomerDto>>(CustomerDto.mapFromCustomersEntities(customers), HttpStatus.OK);
+    }
+
+    /**
+     * The customersCustomerIdGet method is used to retrieve an instance of a CustomerDto object as identified by the customerId provided
+     * retrieves all the phone numbers of a single customer using customerId
+     * @param customerId the customer ID for the Customer object retrieve
+     * @return A ResponseEntity with the corresponding CustomerDto object
+     * @throws NotFoundException if nothing is found then the the NotFoundException is thrown.
+     */
+    @ApiOperation(value = "Retrieves an individual instance of a Customer identified by the customerId", notes = "A getGET request to the Customer instance endpoint will retrieve an instance of a Customer entity as identified by the customerId provided in the URI.", response = CustomerDto.class)
+    @ApiResponses(value = [
+        @ApiResponse(code = 200, message = "Returns a copy of the Customer as identified by the customerId"),
+        @ApiResponse(code = 404, message = "Returns an Error object stating that the resource could not be found. This happens if the specified id cannot be found in the database.")
+    ])
+    @RequestMapping(value = "/{customerId}/phoneNumbers", produces = ["application/json"], method = RequestMethod.GET)
+    public ResponseEntity<CustomerDto> customersCustomerIdGet(@ApiParam(value = "The unique ID of the Customer to retrieve", required = true) @PathVariable("customerId") Integer customerId) throws NotFoundException {
+        LOGGER.info("** CustomersApi - customersCustomerIdGet");
+        Customer customer = customerService.findById(customerId);
+        if (customer == null) {
+            throw new NotFoundException();
+        }
+        return new ResponseEntity<CustomerDto>(CustomerDto.mapFromCustomerEntity(customer), HttpStatus.OK);
+    }
+
+    /**
+     * The customersPatch method is used to update an existing Customer from the supplied CustomerDto
+     * Update an existing customer and activates a phone number
+     * @param customer the CustomerDto to use to update the existing Customer object
+     * @return A ResponseEntity with the updated Customer object
+     * @throws InvalidDataException if there is an issue with the data provided in the RequestBody then an InvalidDataException is thrown
+     */
+    @ApiOperation(value = "Updates an existing Customer entity", notes = "A PATCH request to the Customers endpoint with a Customer object in the request body will update the existing Customer entity in the database.", response = CustomerDto.class)
+    @ApiResponses(value = [
+        @ApiResponse(code = 201, message = "Returns a copy of the updated existing Customer entity including the customerId that has just been updated."),
+        @ApiResponse(code = 400, message = "Returns an Error object stating the request body does not match the expected input.")
+    ])
+    @RequestMapping(value = "/{customerId}/activatePhoneNumber", produces = ["application/json"], method = RequestMethod.PATCH)
+    public ResponseEntity<CustomerDto> customersPatch(
+    @ApiParam(value = "The Customer object to be updated", required = true)
+    @PathVariable("customerId") Integer customerId,
+    @ApiParam(value = "The customer details as they are to be saved.", required = true)
+     @RequestBody @Valid CustomerDto customer) throws NotFoundException {
+
+        LOGGER.info("** CustomersApi - customersPATCH");
+
+		if (customerId != customer.id) {
+            throw new InvalidDataException()
+        }
+		Customer customerPhoneToPatch = customerRepository.findOne(id);
+		Customer customerPatched = customerService.save(customerPhoneToPatch)
+        return new ResponseEntity<CustomerDto>(CustomerDto.mapFromCustomerEntity(customerPatched), HttpStatus.OK);
+    }
+}

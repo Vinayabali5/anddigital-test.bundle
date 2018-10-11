@@ -1,0 +1,87 @@
+package uk.ac.anddigital.services;
+
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+
+import uk.ac.anddigital.domain.Customer
+import uk.ac.reigate.exceptions.InvalidOperationException
+import uk.ac.anddigital.CustomerRepository
+import uk.ac.reigate.utils.ValidationUtils
+
+@Service
+class CustomerService implements ICoreDataService<Customer, Integer> {
+
+@Autowired
+    CustomerRepository customerRepository
+
+    /**
+     * Default NoArgs constructor
+     */
+    CustomerService() {}
+    
+    /**
+     * Autowired Constructor
+     *
+     * @param customerRepository
+     */
+    CustomerService(CustomerRepository customerRepository) {
+        this.customerRepository = customerRepository
+    }
+
+    /**
+     * Find an individual customer using the customers ID fields
+     *
+     * @param id the ID fields to search for
+     * @return the Customer object that matches the ID supplied, or null if not found
+     */
+    @Override
+    @Transactional(readOnly = true)
+    Customer findById(Integer id) {
+        return customerRepository.findOne(id);
+    }
+
+    /**
+     * Find a single page of Customer objects
+     * @return a SearchResult set with the list of Customers
+     */
+    @Override
+    @Transactional(readOnly = true)
+    List<Customer> findAll() {
+        return customerRepository.findAll();
+    }
+
+     /** This method saves to either existing object or creates a new object
+     *
+     * @param id
+     * @param phoneNumber
+     * @return
+     */
+    
+    @Transactional
+    public Customer saveCustomer(Integer id, String phoneNumber) {
+        ValidationUtils.assertNotBlank(phoneNumber, "phoneNumber cannot be blank");
+        Customer customer = null;
+        if (id != null) {
+            customer = findById(id);
+            customer.setPhoneNumber(phoneNumber);
+            save(customer);
+        } else {
+            customer = save(new Customer(phoneNumber));
+        }
+        return customer;
+    }
+
+     /**
+     * This service method is used to save a complete Customer object in the database
+     *
+     * @param customer the new Customer object to be saved
+     * @return the saved version of the Customer object
+     */
+    @Override
+    @Transactional
+    public Customer save(Customer customer) {
+        return customerRepository.save(customer)
+    }
+
+    }

@@ -1,0 +1,68 @@
+package uk.ac.anddigital.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+import groovy.transform.EqualsAndHashCode;
+import uk.ac.anddigital.domain.Customer;
+
+/**
+ *
+ * JSON serializable DTO containing Customer data
+ *
+ */
+@JsonSerialize
+@EqualsAndHashCode(includeFields=true)
+public class CustomerDto implements Serializable {
+    
+    @JsonProperty
+    private Integer id;
+    
+    @JsonProperty
+    private String phoneNumber;
+
+   /**
+     * Default No Args constructor
+     */
+    public CustomerDto() {
+    } 
+
+     /**
+     * Constructor to create a CustomerDto object
+     *
+     * @param id the Id for the Customer
+     * @param phoneNumber the phoneNumber for the Customer
+     */
+    public CustomerDto(Integer id, String phoneNumber) {
+        this.id = id;
+        this.phoneNumber = phoneNumber;
+    }
+
+    /**
+     * Constructor to create a CustomerDto object from a Customer object
+     *
+     * @param customer the Customer object to use for construction
+     */
+    CustomerDto(Customer customer) {
+        this.id = customer.id;
+        this.phoneNumber = customer.phoneNumber;
+    }
+    
+    @Override
+    public String toString() {
+        return "CustomerDto [id=" + id + ", phoneNumber=" + phoneNumber + "]";
+    }
+    
+    public static CustomerDto mapFromCustomerEntity(Customer customer) {
+        return new CustomerDto(customer);
+    }
+    
+    public static List<CustomerDto> mapFromCustomersEntities(List<Customer> customers) {
+        List<CustomerDto> output = customers.collect { customer ->  new CustomerDto(customer) };
+        return output
+    }
+    
+    public static Customer mapToCustomerEntity(CustomerDto customerDto) {
+        return new Customer(customerDto.id, customerDto.phoneNumber)
+    }
+}
